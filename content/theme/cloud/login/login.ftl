@@ -1,73 +1,85 @@
 <#import "template.ftl" as layout>
-<@layout.registrationLayout displayInfo=social.displayInfo displayWide=(realm.password && social.providers??); section>
-	<#if section = "header">
-		${msg("doLogIn")}
-	<#elseif section = "form">
-	<div id="kc-form" <#if realm.password && social.providers??>class="${properties.kcContentWrapperClass!}"</#if>>
-		<div id="kc-form-wrapper" <#if realm.password && social.providers??>class="${properties.kcFormSocialAccountContentClass!} ${properties.kcFormSocialAccountClass!}"</#if>>
-			<#if realm.password>
-				<form id="kc-form-login" onsubmit="login.disabled = true; return true;" action="${url.loginAction}" method="post">
-					<div class="${properties.kcFormGroupClass!}">
-						<#if usernameEditDisabled??>
-							<input tabindex="1" id="username" class="${properties.kcInputClass!}" name="username" value="${(login.username!'')}" type="text" disabled placeholder="<#if !realm.loginWithEmailAllowed>${msg("username")}<#elseif !realm.registrationEmailAsUsername>${msg("usernameOrEmail")}<#else>${msg("email")}</#if>" />
-						<#else>
-							<input tabindex="1" id="username" class="${properties.kcInputClass!}" name="username" value="${(login.username!'')}"  type="text" autocomplete="off" placeholder="<#if !realm.loginWithEmailAllowed>${msg("username")}<#elseif !realm.registrationEmailAsUsername>${msg("usernameOrEmail")}<#else>${msg("email")}</#if>" />
-						</#if>
-					</div>
+<#import "components/provider.ftl" as provider>
+<#import "components/button/primary.ftl" as buttonPrimary>
+<#import "components/checkbox/primary.ftl" as checkboxPrimary>
+<#import "components/input/primary.ftl" as inputPrimary>
+<#import "components/label/username.ftl" as labelUsername>
+<#import "components/link/primary.ftl" as linkPrimary>
 
-					<div class="${properties.kcFormGroupClass!}">
-						<input tabindex="2" id="password" class="${properties.kcInputClass!}" name="password" type="password" autocomplete="off" placeholder="${msg("password")}" />
-					</div>
-
-					<div class="${properties.kcFormGroupClass!} ${properties.kcFormSettingClass!}">
-						<div id="kc-form-options">
-							<#if realm.rememberMe && !usernameEditDisabled??>
-								<div class="checkbox">
-									<label>
-										<div class="toggle">
-											<#if login.rememberMe??>
-												<input tabindex="3" id="rememberMe" name="rememberMe" type="checkbox" checked>
-											<#else>
-												<input tabindex="3" id="rememberMe" name="rememberMe" type="checkbox">
-											</#if>
-											<div class="dot"></div>
-										</div>
-										<div class="label-text">${msg("rememberMe")}</div>
-									</label>
-								</div>
-							</#if>
-						</div>
-						<div id="kc-form-reset-psw" class="${properties.kcFormOptionsWrapperClass!}">
-							<#if realm.resetPasswordAllowed>
-								<span><a tabindex="5" href="${url.loginResetCredentialsUrl}">${msg("doForgotPassword")}</a></span>
-							</#if>
-						</div>
-
-					</div>
-
-					<div id="kc-form-buttons" class="${properties.kcFormGroupClass!}">
-						<input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
-						<input tabindex="4" class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}" name="login" id="kc-login" type="submit" value="${msg("doLogIn")}"/>
-					</div>
-				</form>
-			</#if>
-		</div>
-		<#if realm.password && social.providers??>
-			<div id="kc-social-providers" class="${properties.kcFormSocialAccountContentClass!} ${properties.kcFormSocialAccountClass!}">
-				<ul class="${properties.kcFormSocialAccountListClass!} <#if social.providers?size gt 4>${properties.kcFormSocialAccountDoubleListClass!}</#if>">
-					<#list social.providers as p>
-						<li class="${properties.kcFormSocialAccountListLinkClass!}"><a href="${p.loginUrl}" id="zocial-${p.alias}" class="zocial ${p.providerId}"> <span>${p.displayName}</span></a></li>
-					</#list>
-				</ul>
-			</div>
-		</#if>
-	</div>
-	<#elseif section = "info" >
-		<#if realm.password && realm.registrationAllowed && !registrationDisabled??>
-			<div id="kc-registration">
-				<span>${msg("noAccount")} <a tabindex="6" href="${url.registrationUrl}">${msg("doRegister")}</a></span>
-			</div>
-		</#if>
-	</#if>
-
+<@layout.registrationLayout
+  displayInfo=realm.password && realm.registrationAllowed && !registrationDisabled??
+  displayMessage=!messagesPerField.existsError("username", "password")
+  ;
+  section
+>
+  <#if section="header">
+    ${msg("loginAccountTitle")}
+  <#elseif section="form">
+    <#if realm.password>
+      <form
+        action="${url.loginAction}"
+        class="m-0 space-y-4"
+        method="post"
+        onsubmit="login.disabled = true; return true;"
+      >
+        <input
+          name="credentialId"
+          type="hidden"
+          value="<#if auth.selectedCredential?has_content>${auth.selectedCredential}</#if>"
+        >
+        <div>
+          <@inputPrimary.kw
+            autocomplete=realm.loginWithEmailAllowed?string("email", "username")
+            autofocus=true
+            disabled=usernameEditDisabled??
+            invalid=["username", "password"]
+            name="username"
+            type="text"
+            value=(login.username)!''
+          >
+            <@labelUsername.kw />
+          </@inputPrimary.kw>
+        </div>
+        <div>
+          <@inputPrimary.kw
+            invalid=["username", "password"]
+            message=false
+            name="password"
+            type="password"
+          >
+            ${msg("password")}
+          </@inputPrimary.kw>
+        </div>
+        <div class="flex items-center justify-between">
+          <#if realm.rememberMe && !usernameEditDisabled??>
+            <@checkboxPrimary.kw checked=login.rememberMe?? name="rememberMe">
+              ${msg("rememberMe")}
+            </@checkboxPrimary.kw>
+          </#if>
+          <#if realm.resetPasswordAllowed>
+            <@linkPrimary.kw href=url.loginResetCredentialsUrl>
+              <span class="text-sm">${msg("doForgotPassword")}</span>
+            </@linkPrimary.kw>
+          </#if>
+        </div>
+        <div class="pt-4">
+          <@buttonPrimary.kw name="login" type="submit">
+            ${msg("doLogIn")}
+          </@buttonPrimary.kw>
+        </div>
+      </form>
+    </#if>
+    <#if realm.password && social.providers??>
+      <@provider.kw />
+    </#if>
+  <#elseif section="info">
+    <#if realm.password && realm.registrationAllowed && !registrationDisabled??>
+      <div class="text-center">
+        ${msg("noAccount")}
+        <@linkPrimary.kw href=url.registrationUrl>
+          ${msg("doRegister")}
+        </@linkPrimary.kw>
+      </div>
+    </#if>
+  </#if>
 </@layout.registrationLayout>
